@@ -2,7 +2,7 @@
 //  SolitaireApp.swift
 //  Solitaire
 //
-//  Created by Luke Cutting on 8/12/22.
+//  Created by Luke Cutting on 5/15/22.
 //
 
 import SwiftUI
@@ -11,7 +11,7 @@ import SwiftUI
 struct SolitaireApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            BoardView(board: .initial())
         }
     }
 }
