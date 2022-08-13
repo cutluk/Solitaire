@@ -161,11 +161,12 @@ extension Board {
                 // if (== ++ && != color)
                 if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
                     // move card to bottom of selected column and delete its previous position
+                    
                     self.columns[$0.offset].append(self.columns[columnindex].removeLast())
                     // flip over bottom card in column
                     
 //                    /* Make sure that card doesn't get re-flipped when moving between two potential values*/
-                    
+    
                     guard (!self.columns[columnindex].isEmpty) && (!self.columns[columnindex].last!.isFlipped) else{return}
                     self.columns[columnindex] = self.columns[columnindex].flipBottomCard()
                 }
@@ -173,7 +174,6 @@ extension Board {
     }
     
     func moveFromDeck(){
-        
         self.columns.map{
             $0.last
         }
@@ -185,10 +185,10 @@ extension Board {
                 if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
                     // move card from top right deck and delete it from the top right deck position
                     self.columns[$0.offset].append(card)
-                    // DELETE card from deck
+                    print(self.revealed[$0.offset])
+                    
             }
     }
-
 }
 
 }
