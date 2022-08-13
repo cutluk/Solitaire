@@ -73,9 +73,7 @@ extension Card {
 final class Deck {
    
     var cards: [Card] = {
-        //MAP: func map<A>(_ tranform: (A) -> B) -> B {}
-        //FLATMAP: flatMap<A>(transform (A) -> [B]) -> B
-        //[[Card]] -> [Card]
+
         return Suite.allCases.flatMap { suite in
             Value.allCases.map{ value in
                 Card(value: value, suite: suite)
@@ -102,14 +100,7 @@ extension Deck {
         self.cards.shuffle()
     }
 }
-// Slower implementation
-//extension Array where Element == Card {
-//    mutating func flipBottomCard() {
-//        if var last = self.popLast() {
-//            self.append(last.flip())
-//        }
-//    }
-//}
+
 extension Array where Element == Card {
     mutating func flipBottomCard() -> [Card] {
         self[self.count - 1].isFlipped.toggle()
@@ -142,10 +133,7 @@ extension Board{
                 var col = $0
                 return col.flipBottomCard()
             }
-    //    board.revealed.append(board.deck.drawAndFlip()!)
-        
-        
-        //dump(board)
+
        return board
     }
 }
@@ -160,38 +148,5 @@ extension Board {
 
 
 
-//Board.initial
-//
-//dump(Board.initial)
-//
-//func eatCherries(bagOfCherries: [Cherry]) -> BowlOfPits {
-//    bagOfCherries
-//        .map{ cherry in
-//        putCherryInMouth(cherry)
-//        }
-//        .map{ cherry in
-//            SeperatePit(from: cherry)
-//
-//        }
-//        .map{ goodStuff in
-//            eatgoodStuff(goodStuff)
-//        }
-//        .map{ pit in
-//            SpitItOut(pit)
-//        }
-//
-//    bagOfCherries
-//        .map{
-//        putCherryInMouth($0)
-//        }
-//        .map{ cherry in
-//            SeperatePit(from: $0)
-//
-//        }
-//        .map{
-//            eatgoodStuff($0)
-//        }
-//        .map{
-//            SpitItOut($0)
-//        }
-//}
+}
+
