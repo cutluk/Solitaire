@@ -37,8 +37,8 @@ struct BoardView: View{
                         .padding(.trailing, 23)
                         .padding(.leading, -1)
                         .onTapGesture {
-                            // reset deck of cards
-                           // board.moveAvailable()
+                            // Moves revealed card from deck
+                            board.moveFromDeck()
                         }
                     
                     Image(board.deck.cards.isEmpty ? "card69" : "card0" )
