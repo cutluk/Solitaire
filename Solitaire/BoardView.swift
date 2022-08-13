@@ -37,7 +37,8 @@ struct BoardView: View{
                         .padding(.trailing, 23)
                         .padding(.leading, -1)
                         .onTapGesture {
-                            
+                            // reset deck of cards
+                           // board.moveAvailable()
                         }
                     
                     Image(board.deck.cards.isEmpty ? "card69" : "card0" )
@@ -64,6 +65,9 @@ struct BoardView: View{
                                     .frame(width: 75,height:75)
                                     .padding(.bottom, -50)
                                     .padding([.leading, .trailing],-14)
+                                    .onTapGesture {
+                                        board.moveAvailable(columnindex: i)
+                                    }
                             }
                         }
                     }

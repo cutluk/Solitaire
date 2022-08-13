@@ -146,7 +146,29 @@ extension Board {
     }
 }
 
-
+extension Board {
+    
+    func moveAvailable(columnindex: Int){
+        // scan board for matching card
+        self.columns.map{
+            $0.last
+        }
+        // allows you to grab column value and index
+            .enumerated()
+        // for loop checking if card types will match
+            .map{
+                // creating new card using the bottom of the selected column
+                guard let card = self.columns[columnindex].last else{return}
+                // if (== ++ && != color)
+                if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
+                    // move card to bottom of selected column and delete its previous position
+                    self.columns[$0.offset].append(self.columns[columnindex].removeLast())
+                    // flip over bottom card in column
+                    guard !self.columns[columnindex].isEmpty else{return}
+                    self.columns[columnindex] = self.columns[columnindex].flipBottomCard()
+                }
+            }
+    }
 
 }
 
