@@ -15,19 +15,28 @@ import SwiftUI
 
 final class CardImageCache {
     static let shared = CardImageCache()
-    private var cache: [String: UIImage] = [:]
+
+    /// NSCache auto-evicts entries under memory pressure, preventing OOM kills.
+    private let cache = NSCache<NSString, UIImage>()
 
     /// Point size at which every card is drawn on screen.
     private let displaySize = CGSize(width: 51, height: 75)
 
-    private init() {}
+    /// Screen scale cached once at init — avoids repeated UIScreen.main access.
+    private let scale: CGFloat
+
+    private init() {
+        scale = UIScreen.main.scale
+        // 52 cards + card back + empty-slot marker + background = 55
+        cache.countLimit = 56
+    }
 
     func image(named name: String) -> UIImage {
-        if let cached = cache[name] { return cached }
+        let key = name as NSString
+        if let cached = cache.object(forKey: key) { return cached }
 
         guard let original = UIImage(named: name) else { return UIImage() }
 
-        let scale = UIScreen.main.scale
         let pixelSize = CGSize(
             width: displaySize.width * scale,
             height: displaySize.height * scale
@@ -38,12 +47,12 @@ final class CardImageCache {
             return original
         }
 
-        cache[name] = thumbnail
+        cache.setObject(thumbnail, forKey: key)
         return thumbnail
     }
 
     func clear() {
-        cache.removeAll()
+        cache.removeAllObjects()
     }
 }
 

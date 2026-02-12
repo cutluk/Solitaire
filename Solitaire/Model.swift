@@ -5,8 +5,8 @@
 //  Created by Luke Cutting on 7/1/22.
 //
 
+import Combine
 import Foundation
-import SwiftUI
 
 // MARK: - Suit
 
@@ -48,11 +48,19 @@ struct Card: Identifiable, Equatable {
     let value: Value
     let suit: Suit
     var isFlipped: Bool = false
+    /// Pre-computed identifier — avoids string interpolation on every SwiftUI diff.
+    let id: String
 
-    var id: String { "\(value) \(suit)" }
+    init(value: Value, suit: Suit, isFlipped: Bool = false) {
+        self.value = value
+        self.suit = suit
+        self.isFlipped = isFlipped
+        self.id = "\(value) \(suit)"
+    }
 
-    var imageName: String {
-        isFlipped ? "\(value) \(suit)" : "card0"
+    /// Custom Equatable that skips the redundant `id` comparison (derived from value+suit).
+    static func == (lhs: Card, rhs: Card) -> Bool {
+        lhs.value == rhs.value && lhs.suit == rhs.suit && lhs.isFlipped == rhs.isFlipped
     }
 
     var color: CardColor {
@@ -114,7 +122,11 @@ final class Board: ObservableObject {
     @Published var hasWon: Bool = false
     @Published var canUndo: Bool = false
 
-    private var history: [BoardSnapshot] = []
+    private var history: [BoardSnapshot] = {
+        var h = [BoardSnapshot]()
+        h.reserveCapacity(maxHistoryCount)
+        return h
+    }()
     private static let maxHistoryCount = 30
 
     /// Save the current state before making a move
@@ -128,7 +140,8 @@ final class Board: ObservableObject {
             columns: columns,
             foundations: foundations
         ))
-        canUndo = true
+        // Only trigger objectWillChange when the value actually changes.
+        if !canUndo { canUndo = true }
     }
 
     /// Restore the previous state
@@ -138,8 +151,9 @@ final class Board: ObservableObject {
         revealed = snapshot.revealed
         columns = snapshot.columns
         foundations = snapshot.foundations
-        hasWon = false
-        canUndo = !history.isEmpty
+        if hasWon { hasWon = false }
+        let newCanUndo = !history.isEmpty
+        if canUndo != newCanUndo { canUndo = newCanUndo }
     }
 }
 
@@ -173,7 +187,7 @@ extension Board {
         revealed = []
         foundations = [[], [], [], []]
         hasWon = false
-        history.removeAll()
+        history.removeAll(keepingCapacity: true)
         canUndo = false
     }
 }
@@ -257,7 +271,8 @@ extension Board {
 
     /// Check if all four foundations are complete (Ace through King)
     func checkWin() {
-        hasWon = foundations.allSatisfy { $0.count == 13 }
+        let won = foundations.allSatisfy { $0.count == 13 }
+        if hasWon != won { hasWon = won }
     }
 
     /// Whether all remaining cards can be auto-completed to foundations
