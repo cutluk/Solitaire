@@ -44,7 +44,7 @@ enum CardColor {
 
 // MARK: - Card
 
-struct Card: Identifiable {
+struct Card: Identifiable, Equatable {
     let value: Value
     let suit: Suit
     var isFlipped: Bool = false
@@ -69,30 +69,39 @@ struct Card: Identifiable {
 
 // MARK: - Deck
 
-final class Deck {
+struct Deck: Equatable {
     var cards: [Card] = Suit.allCases.flatMap { suit in
         Value.allCases.map { value in
             Card(value: value, suit: suit)
         }
     }
 
-    func draw() -> Card? {
+    mutating func draw() -> Card? {
         cards.popLast()
     }
 
-    func draw(_ count: Int) -> [Card] {
+    mutating func draw(_ count: Int) -> [Card] {
         (0..<count).compactMap { _ in cards.popLast() }
     }
 
-    func drawAndFlip() -> Card? {
+    mutating func drawAndFlip() -> Card? {
         guard var card = draw() else { return nil }
         card.flip()
         return card
     }
 
-    func shuffle() {
+    mutating func shuffle() {
         cards.shuffle()
     }
+}
+
+// MARK: - Board Snapshot (for undo)
+
+struct BoardSnapshot {
+    let deckCards: [Card]
+    let revealed: [Card]
+    let columns: [[Card]]
+    let foundations: [[Card]]
 }
 
 // MARK: - Board
@@ -103,6 +112,35 @@ final class Board: ObservableObject {
     @Published var columns: [[Card]] = []
     @Published var foundations: [[Card]] = [[], [], [], []]
     @Published var hasWon: Bool = false
+    @Published var canUndo: Bool = false
+
+    private var history: [BoardSnapshot] = []
+    private static let maxHistoryCount = 30
+
+    /// Save the current state before making a move
+    func saveSnapshot() {
+        if history.count >= Self.maxHistoryCount {
+            history.removeFirst()
+        }
+        history.append(BoardSnapshot(
+            deckCards: deck.cards,
+            revealed: revealed,
+            columns: columns,
+            foundations: foundations
+        ))
+        canUndo = true
+    }
+
+    /// Restore the previous state
+    func undo() {
+        guard let snapshot = history.popLast() else { return }
+        deck.cards = snapshot.deckCards
+        revealed = snapshot.revealed
+        columns = snapshot.columns
+        foundations = snapshot.foundations
+        hasWon = false
+        canUndo = !history.isEmpty
+    }
 }
 
 // MARK: - Setup
@@ -122,12 +160,21 @@ extension Board {
     }
 
     func newGame() {
-        let fresh = Board.initial()
-        deck = fresh.deck
-        revealed = fresh.revealed
-        columns = fresh.columns
+        var freshDeck = Deck()
+        freshDeck.shuffle()
+        columns = (1...7).map { count in
+            var cards = freshDeck.draw(count)
+            if !cards.isEmpty {
+                cards[cards.count - 1].isFlipped = true
+            }
+            return cards
+        }
+        deck = freshDeck
+        revealed = []
         foundations = [[], [], [], []]
         hasWon = false
+        history.removeAll()
+        canUndo = false
     }
 }
 
@@ -175,6 +222,27 @@ extension Board {
     }
 }
 
+// MARK: - Move Availability
+
+extension Board {
+    /// Can the top revealed card be moved anywhere?
+    func canMoveRevealed() -> Bool {
+        guard let card = revealed.last else { return false }
+        return findFoundation(for: card) != nil || findColumn(for: card) != nil
+    }
+
+    /// Can the card at this position in the column be moved anywhere?
+    func canMoveColumn(columnIndex: Int, cardIndex: Int) -> Bool {
+        guard cardIndex < columns[columnIndex].count else { return false }
+        let card = columns[columnIndex][cardIndex]
+        guard card.isFlipped else { return false }
+        let isTopCard = cardIndex == columns[columnIndex].count - 1
+        if isTopCard, findFoundation(for: card) != nil { return true }
+        if findColumn(for: card, excluding: columnIndex) != nil { return true }
+        return false
+    }
+}
+
 // MARK: - Helpers
 
 extension Board {
@@ -191,6 +259,51 @@ extension Board {
     func checkWin() {
         hasWon = foundations.allSatisfy { $0.count == 13 }
     }
+
+    /// Whether all remaining cards can be auto-completed to foundations
+    var canAutoComplete: Bool {
+        // Deck must be empty
+        guard deck.cards.isEmpty else { return false }
+        // All tableau cards must be face-up
+        let allFaceUp = columns.allSatisfy { column in
+            column.allSatisfy { $0.isFlipped }
+        }
+        guard allFaceUp else { return false }
+        // Must still have cards to move
+        return !hasWon
+    }
+
+    /// The next card that can be moved to a foundation during auto-complete
+    func nextAutoCompleteCard() -> Card? {
+        for column in columns {
+            if let card = column.last, findFoundation(for: card) != nil {
+                return card
+            }
+        }
+        if let card = revealed.last, findFoundation(for: card) != nil {
+            return card
+        }
+        return nil
+    }
+
+    /// Move one card to its foundation during auto-complete. Returns true if a card was moved.
+    func autoCompleteOneCard() -> Bool {
+        for colIndex in 0..<columns.count {
+            if let card = columns[colIndex].last,
+               let fi = findFoundation(for: card) {
+                foundations[fi].append(columns[colIndex].removeLast())
+                checkWin()
+                return true
+            }
+        }
+        if let card = revealed.last,
+           let fi = findFoundation(for: card) {
+            foundations[fi].append(revealed.removeLast())
+            checkWin()
+            return true
+        }
+        return false
+    }
 }
 
 // MARK: - Actions
@@ -198,6 +311,7 @@ extension Board {
 extension Board {
     /// Tap the stock pile (deck) to reveal a card, or recycle if empty
     func tapDeck() {
+        saveSnapshot()
         if deck.cards.isEmpty {
             // Recycle: flip revealed cards back into stock
             deck.cards = revealed.reversed().map { card in
@@ -209,7 +323,6 @@ extension Board {
         } else if let card = deck.drawAndFlip() {
             revealed.append(card)
         }
-        objectWillChange.send()
     }
 
     /// Tap the revealed (waste) pile to move the top card
@@ -218,16 +331,16 @@ extension Board {
 
         // Try foundation first
         if let fi = findFoundation(for: card) {
+            saveSnapshot()
             foundations[fi].append(revealed.removeLast())
             checkWin()
-            objectWillChange.send()
             return
         }
 
         // Try tableau column
         if let ci = findColumn(for: card) {
+            saveSnapshot()
             columns[ci].append(revealed.removeLast())
-            objectWillChange.send()
             return
         }
     }
@@ -244,20 +357,20 @@ extension Board {
 
         // If it's the top card, try moving to a foundation pile first
         if isTopCard, let fi = findFoundation(for: card) {
+            saveSnapshot()
             foundations[fi].append(columns[columnIndex].removeLast())
             exposeTopCard(in: columnIndex)
             checkWin()
-            objectWillChange.send()
             return
         }
 
         // Try moving this card (and all cards on top of it) to another column
         if let targetCol = findColumn(for: card, excluding: columnIndex) {
+            saveSnapshot()
             let moving = Array(columns[columnIndex][cardIndex...])
             columns[targetCol].append(contentsOf: moving)
             columns[columnIndex].removeSubrange(cardIndex...)
             exposeTopCard(in: columnIndex)
-            objectWillChange.send()
             return
         }
     }
@@ -268,8 +381,8 @@ extension Board {
 
         // Check revealed pile for a king
         if let card = revealed.last, card.value == .king {
+            saveSnapshot()
             columns[columnIndex].append(revealed.removeLast())
-            objectWillChange.send()
             return
         }
 
@@ -280,11 +393,11 @@ extension Board {
                 let card = columns[i][firstFaceUp]
                 if card.value == .king && firstFaceUp > 0 {
                     // Only move if the king isn't already at the base (pointless move)
+                    saveSnapshot()
                     let moving = Array(columns[i][firstFaceUp...])
                     columns[columnIndex].append(contentsOf: moving)
                     columns[i].removeSubrange(firstFaceUp...)
                     exposeTopCard(in: i)
-                    objectWillChange.send()
                     return
                 }
             }
