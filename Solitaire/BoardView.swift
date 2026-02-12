@@ -225,20 +225,13 @@ struct BoardView: View {
                                 .foregroundColor(.white.opacity(0.25))
                         )
 
-                    // Previous top card — static image in layout, never animates
-                    if board.foundations[i].count >= 2 {
-                        Image(uiImage: CardImageCache.shared.image(named: board.foundations[i][board.foundations[i].count - 2].id))
-                            .resizable()
-                            .interpolation(.medium)
-                            .scaledToFit()
-                            .frame(width: cardWidth, height: cardHeight)
-                    }
-
-                    // Anchor for the current top card (incoming cards fly here)
-                    if let topCard = board.foundations[i].last {
+                    // Anchors for the top two foundation cards.
+                    // Keeping the previous top card anchored in the overlay
+                    // prevents a visual glitch when the new card lands.
+                    ForEach(Array(board.foundations[i].suffix(2)), id: \.id) { card in
                         Color.clear
                             .frame(width: cardWidth, height: cardHeight)
-                            .matchedGeometryEffect(id: topCard.id, in: cardAnimation, isSource: true)
+                            .matchedGeometryEffect(id: card.id, in: cardAnimation, isSource: true)
                     }
                 }
                 .padding(-14)
@@ -460,16 +453,21 @@ struct BoardView: View {
                 }
             }
 
-            // Foundation top card only (for incoming flight animation)
+            // Foundation top two cards per pile.
+            // Rendering the previous top card here (instead of as a static
+            // layout image) keeps its view identity stable when a new card
+            // lands, eliminating the end-of-animation glitch.
             ForEach(0..<4, id: \.self) { i in
-                if let topCard = board.foundations[i].last {
-                    Image(uiImage: CardImageCache.shared.image(named: topCard.id))
+                let topCards = Array(board.foundations[i].suffix(2))
+                ForEach(topCards, id: \.id) { card in
+                    let isTop = card.id == board.foundations[i].last?.id
+                    Image(uiImage: CardImageCache.shared.image(named: card.id))
                         .resizable()
                         .interpolation(.medium)
                         .scaledToFit()
                         .frame(width: cardWidth, height: cardHeight)
-                        .matchedGeometryEffect(id: topCard.id, in: cardAnimation, isSource: false)
-                        .zIndex(zIndex(for: topCard.id, base: 200 + Double(i)))
+                        .matchedGeometryEffect(id: card.id, in: cardAnimation, isSource: false)
+                        .zIndex(isTop ? zIndex(for: card.id, base: 200 + Double(i)) : 190 + Double(i))
                 }
             }
 
