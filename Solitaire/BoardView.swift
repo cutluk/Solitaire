@@ -99,6 +99,7 @@ struct CardView: View, Equatable {
 
 struct BoardView: View {
     @ObservedObject var board: Board
+    @ObservedObject var store: StoreManager
     @Namespace private var cardAnimation
     @AppStorage("winCount") private var winCount: Int = 0
     @State private var flyingCardID: String? = nil
@@ -119,6 +120,9 @@ struct BoardView: View {
     // Win celebration state
     @State private var showWinCelebration = false
     @State private var celebrationScale: CGFloat = 0
+
+    // Undo purchase prompt
+    @State private var showUndoPurchasePrompt = false
 
     let cardWidth: CGFloat = 51
     let cardHeight: CGFloat = 75
@@ -155,6 +159,9 @@ struct BoardView: View {
             }
         }
         .allowsHitTesting(!isAutoCompleting || showWinCelebration)
+        .sheet(isPresented: $showUndoPurchasePrompt) {
+            UndoPurchaseView(store: store)
+        }
         .alert("All cards are face up!", isPresented: $showAutoCompletePrompt) {
             Button("Auto Complete") {
                 startAutoComplete()
@@ -336,22 +343,44 @@ struct BoardView: View {
 
     var bottomBar: some View {
         HStack {
-            Button {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    board.undo()
+            if store.isUndoPurchased {
+                // Undo is unlocked — normal behavior
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        board.undo()
+                    }
+                } label: {
+                    Label("Undo", systemImage: "arrow.uturn.backward")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(board.canUndo ? .white : .white.opacity(0.4))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(board.canUndo ? 0.45 : 0.2))
+                        )
                 }
-            } label: {
-                Label("Undo", systemImage: "arrow.uturn.backward")
+                .disabled(!board.canUndo)
+            } else {
+                // Undo is locked — show lock icon, tapping opens purchase sheet
+                Button {
+                    showUndoPurchasePrompt = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "lock.fill")
+                            .font(.caption)
+                        Text("Undo")
+                    }
                     .font(.subheadline.weight(.semibold))
-                    .foregroundColor(board.canUndo ? .white : .white.opacity(0.4))
+                    .foregroundColor(.white.opacity(0.5))
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(
                         Capsule()
-                            .fill(Color.black.opacity(board.canUndo ? 0.45 : 0.2))
+                            .fill(Color.black.opacity(0.25))
                     )
+                }
             }
-            .disabled(!board.canUndo)
 
             Spacer()
 
@@ -640,9 +669,200 @@ struct BoardView: View {
     }
 }
 
+// MARK: - Undo Purchase View
+
+struct UndoPurchaseView: View {
+    @ObservedObject var store: StoreManager
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            // Background
+            LinearGradient(
+                colors: [Color(red: 0.05, green: 0.15, blue: 0.08),
+                         Color(red: 0.02, green: 0.08, blue: 0.04)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Spacer()
+
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            RadialGradient(
+                                colors: [.blue.opacity(0.4), .clear],
+                                center: .center,
+                                startRadius: 10,
+                                endRadius: 70
+                            )
+                        )
+                        .frame(width: 140, height: 140)
+
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.blue, .cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .blue.opacity(0.5), radius: 12)
+                }
+
+                // Title
+                Text("Unlock Undo")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+
+                // Description
+                Text("Made a wrong move? Undo lets you take back\nyour last moves and try a different strategy.")
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                // Features list
+                VStack(alignment: .leading, spacing: 12) {
+                    featureRow(icon: "arrow.uturn.backward", text: "Undo your last moves")
+                    featureRow(icon: "infinity", text: "Unlimited uses, forever")
+                    featureRow(icon: "bolt.fill", text: "One-time purchase")
+                }
+                .padding(.horizontal, 40)
+                .padding(.top, 8)
+
+                Spacer()
+
+                // Error message (shown above button so it's always visible)
+                if let error = store.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
+                // Purchase button
+                if store.isLoadingProducts {
+                    ProgressView("Loading…")
+                        .tint(.white)
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.vertical, 16)
+                } else if store.undoProduct != nil {
+                    Button {
+                        Task {
+                            await store.purchaseUndo()
+                            if store.isUndoPurchased {
+                                dismiss()
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            if store.isPurchasing {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(store.undoProduct?.displayPrice ?? "$0.99")
+                                    .font(.headline.weight(.bold))
+                                Text("–")
+                                Text("Unlock Undo")
+                                    .font(.headline.weight(.bold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.blue, .cyan],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        )
+                        .shadow(color: .blue.opacity(0.4), radius: 10, y: 5)
+                    }
+                    .disabled(store.isPurchasing)
+                    .padding(.horizontal, 32)
+                } else {
+                    // Product failed to load — show retry
+                    Button {
+                        Task { await store.loadProducts() }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.clockwise")
+                            Text("Retry")
+                                .font(.headline.weight(.bold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.15))
+                        )
+                    }
+                    .padding(.horizontal, 32)
+                }
+
+                // Restore button
+                Button {
+                    Task {
+                        await store.restorePurchases()
+                        if store.isUndoPurchased {
+                            dismiss()
+                        }
+                    }
+                } label: {
+                    Text("Restore Purchase")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .padding(.bottom, 8)
+
+                // Dismiss
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Not Now")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+                .padding(.bottom, 24)
+            }
+        }
+        .task {
+            // Retry loading products when the sheet appears if not already loaded
+            if store.undoProduct == nil && !store.isLoadingProducts {
+                await store.loadProducts()
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func featureRow(icon: String, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundColor(.cyan)
+                .frame(width: 24)
+            Text(text)
+                .font(.body)
+                .foregroundColor(.white.opacity(0.8))
+        }
+    }
+}
+
 struct BoardView_Previews: PreviewProvider {
     static var previews: some View {
-        BoardView(board: .initial())
+        BoardView(board: .initial(), store: StoreManager())
             .previewInterfaceOrientation(.portrait)
     }
 }

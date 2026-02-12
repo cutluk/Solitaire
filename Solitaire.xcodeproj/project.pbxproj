@@ -12,6 +12,7 @@
 		466A207628A6DA92006DB9ED /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 466A207528A6DA92006DB9ED /* Preview Assets.xcassets */; };
 		466A207D28A6DB89006DB9ED /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466A207C28A6DB89006DB9ED /* BoardView.swift */; };
 		466A207F28A6DB9E006DB9ED /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466A207E28A6DB9E006DB9ED /* Model.swift */; };
+		AA1B2C3E28A6DC00006DB9ED /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D28A6DC00006DB9ED /* StoreManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,8 @@
 		466A207528A6DA92006DB9ED /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		466A207C28A6DB89006DB9ED /* BoardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		466A207E28A6DB9E006DB9ED /* Model.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Model.swift; sourceTree = "<group>"; };
+		AA1B2C3D28A6DC00006DB9ED /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
+		AA1B2C3F28A6DC00006DB9ED /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +59,8 @@
 				466A206E28A6DA91006DB9ED /* SolitaireApp.swift */,
 				466A207C28A6DB89006DB9ED /* BoardView.swift */,
 				466A207E28A6DB9E006DB9ED /* Model.swift */,
+				AA1B2C3D28A6DC00006DB9ED /* StoreManager.swift */,
+				AA1B2C3F28A6DC00006DB9ED /* Products.storekit */,
 				466A207228A6DA92006DB9ED /* Assets.xcassets */,
 				466A207428A6DA92006DB9ED /* Preview Content */,
 			);
@@ -143,6 +148,7 @@
 				466A207D28A6DB89006DB9ED /* BoardView.swift in Sources */,
 				466A206F28A6DA91006DB9ED /* SolitaireApp.swift in Sources */,
 				466A207F28A6DB9E006DB9ED /* Model.swift in Sources */,
+				AA1B2C3E28A6DC00006DB9ED /* StoreManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,12 +285,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Solitaire;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codebycutting.solitaire;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -308,12 +315,13 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Solitaire;
+				PRODUCT_BUNDLE_IDENTIFIER = com.codebycutting.solitaire;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -343,7 +351,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = 466A206328A6DA91006DB9ED /* Project object */;
 }
