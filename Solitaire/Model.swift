@@ -109,6 +109,9 @@ extension Array where Element == Card {
 }
 
 // value and reference semantics
+
+
+
 final class Board: ObservableObject {
     @Published var deck = Deck()
     @Published var revealed: [Card] = []
@@ -148,6 +151,18 @@ extension Board {
 
 extension Board {
     func moveAvailable(columnindex: Int){
+        // Move cards to top if space is available
+        self.slots.map{
+            $0.last
+        }
+        .enumerated()
+        .map{
+            guard let card = self.columns[columnindex].last else{return}
+            
+            if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color == card.color) && ($0.element?.suite == card.suite){
+                self.slots[0].append(self.columns[columnindex].removeLast())
+            }
+        }
         // scan board for matching card
         self.columns.map{
             $0.last
@@ -157,15 +172,12 @@ extension Board {
         // for loop checking if card types will match
             .map{
                 // creating new card using the bottom of the selected column
+                // figure out which card is being passed in
                 guard let card = self.columns[columnindex].last else{return}
+                
                 // if (== ++ && != color)
                 if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
                     // move card to bottom of selected column and delete its previous position
-                    
-                    self.columns[$0.offset].append(self.columns[columnindex].removeLast())
-                    // flip over bottom card in column
-                    
-//                    /* Make sure that card doesn't get re-flipped when moving between two potential values*/
     
                     guard (!self.columns[columnindex].isEmpty) && (!self.columns[columnindex].last!.isFlipped) else{return}
                     self.columns[columnindex] = self.columns[columnindex].flipBottomCard()
@@ -173,22 +185,20 @@ extension Board {
             }
     }
     
+    
     func moveFromDeck(){
         self.columns.map{
             $0.last
         }
             .enumerated()
             .map{
-                // NOT SURE IF REVEALED IS THE CORRECT WAY TO GRAB THE DECK VALUE
                 guard let card = revealed.last else{return}
                 // if (== ++ && != color)
                 if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
                     // move card from top right deck and delete it from the top right deck position
-                    self.columns[$0.offset].append(card)
-                    print(self.revealed[$0.offset])
+                    self.columns[$0.offset].append(self.revealed.removeLast())
                     
             }
     }
 }
-
 }

@@ -72,8 +72,8 @@ struct BoardView: View{
                         }
                     }
                     
-              //  Text("\(board.columns[1].count)")
-              //  Text("\(board.columns[2][0].value.rawValue) \(board.columns[2][0].suite.rawValue)")
+          //      Text("\(board.columns[1].count)")
+         //       Text("\(board.columns[2][0].value.rawValue) \(board.columns[2][0].suite.rawValue)")
             }
                 Spacer()
             }
@@ -87,3 +87,5 @@ struct BoardView_Previews: PreviewProvider {
             .previewInterfaceOrientation(.portrait)
     }
 }
+
+
