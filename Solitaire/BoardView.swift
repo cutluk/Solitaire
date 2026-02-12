@@ -5,77 +5,100 @@
 //  Created by Luke Cutting on 7/1/22.
 //
 
-import Foundation
 import SwiftUI
 
-struct BoardView: View{
+struct BoardView: View {
     @ObservedObject var board: Board
-    var body: some View{
-        ZStack{
+
+    let cardWidth: CGFloat = 51
+    let cardHeight: CGFloat = 75
+
+    var body: some View {
+        ZStack {
             Image("background")
                 .resizable()
                 .edgesIgnoringSafeArea(.all)
-            VStack{
-                HStack{
-                    ForEach(0..<4){ _ in
-                        Image("card0")
-                            .resizable()
-                            .frame(width: 51,height:75)
-                            .padding(-14)
-                            .padding(.trailing, 23)
-                            .padding(.leading, -1)
-                    }
-        
-                    Spacer()
-                    Spacer()
-                    
-                    
-                    Image(board.revealed.last?.imageName ?? "card69")
-                        .resizable()
-                        .frame(width: 51,height:75)
-                        .padding(-14)
-                        .padding(.trailing, 23)
-                        .padding(.leading, -1)
-                        .onTapGesture {
-                            // Moves revealed card from deck
-                            board.moveFromDeck()
-                        }
-                    
-                    Image(board.deck.cards.isEmpty ? "card69" : "card0" )
-                        .resizable()
-                        .frame(width: 51,height:75)
-                        .padding(-14)
-                        .onTapGesture {
-                            board.reveal()
-                        }
-        
-        
-                }
-                .padding([.leading, .trailing], 20)
-                .padding(.bottom,50)
-                .padding(.top,30)
-                
-                HStack(alignment: .top){                    
-                    ForEach(0..<7) { i in
-                        VStack{
-                            ForEach(board.columns[i]){
-                                Image($0.imageName)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 75,height:75)
-                                    .padding(.bottom, -50)
-                                    .padding([.leading, .trailing],-14)
-                                    .onTapGesture {
-                                        board.moveAvailable(columnindex: i)
-                                    }
-                            }
-                        }
-                    }
-                    
-          //      Text("\(board.columns[1].count)")
-         //       Text("\(board.columns[2][0].value.rawValue) \(board.columns[2][0].suite.rawValue)")
-            }
+
+            VStack {
+                topRow
+                    .padding([.leading, .trailing], 20)
+                    .padding(.bottom, 50)
+                    .padding(.top, 30)
+
+                tableau
+
                 Spacer()
+            }
+        }
+        .alert("You Win!", isPresented: $board.hasWon) {
+            Button("New Game") {
+                board.newGame()
+            }
+        }
+    }
+
+    // MARK: - Top Row
+
+    var topRow: some View {
+        HStack {
+            // 4 foundation piles
+            ForEach(0..<4, id: \.self) { i in
+                Image(board.foundations[i].last?.imageName ?? "card69")
+                    .resizable()
+                    .frame(width: cardWidth, height: cardHeight)
+                    .padding(-14)
+                    .padding(.trailing, 23)
+                    .padding(.leading, -1)
+            }
+
+            Spacer()
+
+            // Revealed (waste) pile
+            Image(board.revealed.last?.imageName ?? "card69")
+                .resizable()
+                .frame(width: cardWidth, height: cardHeight)
+                .padding(-14)
+                .padding(.trailing, 23)
+                .padding(.leading, -1)
+                .onTapGesture {
+                    board.tapRevealed()
+                }
+
+            // Stock (deck)
+            Image(board.deck.cards.isEmpty ? "card69" : "card0")
+                .resizable()
+                .frame(width: cardWidth, height: cardHeight)
+                .padding(-14)
+                .onTapGesture {
+                    board.tapDeck()
+                }
+        }
+    }
+
+    // MARK: - Tableau
+
+    var tableau: some View {
+        HStack(alignment: .top) {
+            ForEach(0..<7, id: \.self) { colIndex in
+                VStack(spacing: 0) {
+                    ForEach(
+                        Array(board.columns[colIndex].enumerated()),
+                        id: \.element.id
+                    ) { cardIndex, card in
+                        Image(card.imageName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 75, height: 75)
+                            .padding(.bottom, -50)
+                            .padding([.leading, .trailing], -14)
+                            .onTapGesture {
+                                board.tapColumn(
+                                    columnIndex: colIndex,
+                                    cardIndex: cardIndex
+                                )
+                            }
+                    }
+                }
             }
         }
     }
@@ -87,5 +110,3 @@ struct BoardView_Previews: PreviewProvider {
             .previewInterfaceOrientation(.portrait)
     }
 }
-
-

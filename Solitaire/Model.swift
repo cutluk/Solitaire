@@ -8,13 +8,16 @@
 import Foundation
 import SwiftUI
 
-enum Suite: String, CaseIterable {
+// MARK: - Suit
+
+enum Suit: String, CaseIterable {
     case diamonds
     case spades
     case clubs
     case hearts
 }
 
+// MARK: - Value
 
 enum Value: Int, CaseIterable {
     case ace = 1
@@ -32,173 +35,230 @@ enum Value: Int, CaseIterable {
     case king = 13
 }
 
-struct Card {
-    let value: Value
-    let suite: Suite
-    var isFlipped: Bool = false
-}
-extension Card {
-    var imageName: String {
-        self.isFlipped
-        ? "\(self.value) \(self.suite)"
-        : "card0"
-    }
-}
-extension Card: Identifiable {
-    var id: String { "\(self.value) \(self.suite)" }
-}
-extension Card {
-    mutating func flip() -> Card {
-        self.isFlipped.toggle()
-        return self 
-    }
-}
+// MARK: - CardColor
 
-enum Color {
+enum CardColor {
     case black
     case red
 }
 
-extension Card {
-    var color: Color {
-        switch self.suite {
-            case .diamonds, .hearts:
-                return .red
-            case .spades, .clubs:
-                return .black
+// MARK: - Card
+
+struct Card: Identifiable {
+    let value: Value
+    let suit: Suit
+    var isFlipped: Bool = false
+
+    var id: String { "\(value) \(suit)" }
+
+    var imageName: String {
+        isFlipped ? "\(value) \(suit)" : "card0"
+    }
+
+    var color: CardColor {
+        switch suit {
+        case .diamonds, .hearts: return .red
+        case .spades, .clubs: return .black
         }
     }
+
+    mutating func flip() {
+        isFlipped.toggle()
+    }
 }
+
+// MARK: - Deck
 
 final class Deck {
-   
-    var cards: [Card] = {
-
-        return Suite.allCases.flatMap { suite in
-            Value.allCases.map{ value in
-                Card(value: value, suite: suite)
-            }
-        }
-    }()
-}
-extension Deck {
-
-    func draw() -> Card?{
-        self.cards.popLast()
-    }
-    func draw(_ count: Int) -> [Card]{
-        
-        Array(repeating: 0, count: count).compactMap { _ in
-            self.cards.popLast()
+    var cards: [Card] = Suit.allCases.flatMap { suit in
+        Value.allCases.map { value in
+            Card(value: value, suit: suit)
         }
     }
+
+    func draw() -> Card? {
+        cards.popLast()
+    }
+
+    func draw(_ count: Int) -> [Card] {
+        (0..<count).compactMap { _ in cards.popLast() }
+    }
+
     func drawAndFlip() -> Card? {
-        var card = self.draw()
-        return card?.flip()
+        guard var card = draw() else { return nil }
+        card.flip()
+        return card
     }
+
     func shuffle() {
-        self.cards.shuffle()
+        cards.shuffle()
     }
 }
 
-extension Array where Element == Card {
-    mutating func flipBottomCard() -> [Card] {
-        self[self.count - 1].isFlipped.toggle()
-        return self
-    }
-}
-
-// value and reference semantics
-
-
+// MARK: - Board
 
 final class Board: ObservableObject {
     @Published var deck = Deck()
     @Published var revealed: [Card] = []
     @Published var columns: [[Card]] = []
-    @Published var slots: [[Card]] = []
+    @Published var foundations: [[Card]] = [[], [], [], []]
+    @Published var hasWon: Bool = false
 }
 
-extension Board{
+// MARK: - Setup
+
+extension Board {
     static func initial() -> Board {
         let board = Board()
         board.deck.shuffle()
-        board.columns = [
-            board.deck.draw(1),
-            board.deck.draw(2),
-            board.deck.draw(3),
-            board.deck.draw(4),
-            board.deck.draw(5),
-            board.deck.draw(6),
-            board.deck.draw(7)
-        ]
-            .map {
-                var col = $0
-                return col.flipBottomCard()
+        board.columns = (1...7).map { count in
+            var cards = board.deck.draw(count)
+            if !cards.isEmpty {
+                cards[cards.count - 1].isFlipped = true
             }
-
-       return board
-    }
-}
-
-extension Board {
-    func reveal() {
-        if let drawn = deck.drawAndFlip() {
-            revealed.append(drawn)
+            return cards
         }
+        return board
+    }
+
+    func newGame() {
+        let fresh = Board.initial()
+        deck = fresh.deck
+        revealed = fresh.revealed
+        columns = fresh.columns
+        foundations = [[], [], [], []]
+        hasWon = false
     }
 }
+
+// MARK: - Validation
 
 extension Board {
-    func moveAvailable(columnindex: Int){
-        // Move cards to top if space is available
-        self.slots.map{
-            $0.last
+    /// Can this card be placed on the given foundation pile?
+    func canPlaceOnFoundation(card: Card, foundationIndex: Int) -> Bool {
+        if let top = foundations[foundationIndex].last {
+            return card.suit == top.suit && card.value.rawValue == top.value.rawValue + 1
+        } else {
+            return card.value == .ace
         }
-        .enumerated()
-        .map{
-            guard let card = self.columns[columnindex].last else{return}
-            
-            if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color == card.color) && ($0.element?.suite == card.suite){
-                self.slots[0].append(self.columns[columnindex].removeLast())
-            }
-        }
-        // scan board for matching card
-        self.columns.map{
-            $0.last
-        }
-        // allows you to grab column value and index
-            .enumerated()
-        // for loop checking if card types will match
-            .map{
-                // creating new card using the bottom of the selected column
-                // figure out which card is being passed in
-                guard let card = self.columns[columnindex].last else{return}
-                
-                // if (== ++ && != color)
-                if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
-                    // move card to bottom of selected column and delete its previous position
-    
-                    guard (!self.columns[columnindex].isEmpty) && (!self.columns[columnindex].last!.isFlipped) else{return}
-                    self.columns[columnindex] = self.columns[columnindex].flipBottomCard()
-                }
-            }
     }
-    
-    
-    func moveFromDeck(){
-        self.columns.map{
-            $0.last
+
+    /// Can this card be placed on top of the given tableau column?
+    func canPlaceOnColumn(card: Card, columnIndex: Int) -> Bool {
+        if let top = columns[columnIndex].last {
+            return card.color != top.color && card.value.rawValue == top.value.rawValue - 1
+        } else {
+            return card.value == .king
         }
-            .enumerated()
-            .map{
-                guard let card = revealed.last else{return}
-                // if (== ++ && != color)
-                if ($0.element?.value.rawValue == card.value.rawValue + 1) && ($0.element?.color != card.color) {
-                    // move card from top right deck and delete it from the top right deck position
-                    self.columns[$0.offset].append(self.revealed.removeLast())
-                    
-            }
+    }
+
+    /// Find a foundation pile where this card can be placed
+    func findFoundation(for card: Card) -> Int? {
+        for i in 0..<4 where canPlaceOnFoundation(card: card, foundationIndex: i) {
+            return i
+        }
+        return nil
+    }
+
+    /// Find a tableau column where this card can be placed (prefers non-empty columns)
+    func findColumn(for card: Card, excluding: Int = -1) -> Int? {
+        // Prefer non-empty columns over empty ones
+        for i in 0..<7 where i != excluding && !columns[i].isEmpty
+            && canPlaceOnColumn(card: card, columnIndex: i) {
+            return i
+        }
+        for i in 0..<7 where i != excluding && columns[i].isEmpty
+            && canPlaceOnColumn(card: card, columnIndex: i) {
+            return i
+        }
+        return nil
     }
 }
+
+// MARK: - Helpers
+
+extension Board {
+    /// Flip the new top card of a column face-up if it's currently face-down
+    func exposeTopCard(in columnIndex: Int) {
+        guard !columns[columnIndex].isEmpty else { return }
+        let last = columns[columnIndex].count - 1
+        if !columns[columnIndex][last].isFlipped {
+            columns[columnIndex][last].isFlipped = true
+        }
+    }
+
+    /// Check if all four foundations are complete (Ace through King)
+    func checkWin() {
+        hasWon = foundations.allSatisfy { $0.count == 13 }
+    }
+}
+
+// MARK: - Actions
+
+extension Board {
+    /// Tap the stock pile (deck) to reveal a card, or recycle if empty
+    func tapDeck() {
+        if deck.cards.isEmpty {
+            // Recycle: flip revealed cards back into stock
+            deck.cards = revealed.reversed().map { card in
+                var c = card
+                c.isFlipped = false
+                return c
+            }
+            revealed.removeAll()
+        } else if let card = deck.drawAndFlip() {
+            revealed.append(card)
+        }
+        objectWillChange.send()
+    }
+
+    /// Tap the revealed (waste) pile to move the top card
+    func tapRevealed() {
+        guard let card = revealed.last else { return }
+
+        // Try foundation first
+        if let fi = findFoundation(for: card) {
+            foundations[fi].append(revealed.removeLast())
+            checkWin()
+            objectWillChange.send()
+            return
+        }
+
+        // Try tableau column
+        if let ci = findColumn(for: card) {
+            columns[ci].append(revealed.removeLast())
+            objectWillChange.send()
+            return
+        }
+    }
+
+    /// Tap a card in a tableau column
+    func tapColumn(columnIndex: Int, cardIndex: Int) {
+        guard cardIndex < columns[columnIndex].count else { return }
+        let card = columns[columnIndex][cardIndex]
+
+        // Can't interact with face-down cards
+        guard card.isFlipped else { return }
+
+        let isTopCard = cardIndex == columns[columnIndex].count - 1
+
+        // If it's the top card, try moving to a foundation pile first
+        if isTopCard, let fi = findFoundation(for: card) {
+            foundations[fi].append(columns[columnIndex].removeLast())
+            exposeTopCard(in: columnIndex)
+            checkWin()
+            objectWillChange.send()
+            return
+        }
+
+        // Try moving this card (and all cards on top of it) to another column
+        if let targetCol = findColumn(for: card, excluding: columnIndex) {
+            let moving = Array(columns[columnIndex][cardIndex...])
+            columns[targetCol].append(contentsOf: moving)
+            columns[columnIndex].removeSubrange(cardIndex...)
+            exposeTopCard(in: columnIndex)
+            objectWillChange.send()
+            return
+        }
+    }
 }

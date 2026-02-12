@@ -9,9 +9,11 @@ import SwiftUI
 
 @main
 struct SolitaireApp: App {
+    @StateObject private var board = Board.initial()
+
     var body: some Scene {
         WindowGroup {
-            BoardView(board: .initial())
+            BoardView(board: board)
         }
     }
 }
