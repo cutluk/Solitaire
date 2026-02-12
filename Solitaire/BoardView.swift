@@ -686,7 +686,7 @@ struct UndoPurchaseView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: 12) {
                 Spacer()
 
                 // Icon
@@ -696,14 +696,14 @@ struct UndoPurchaseView: View {
                             RadialGradient(
                                 colors: [.blue.opacity(0.4), .clear],
                                 center: .center,
-                                startRadius: 10,
-                                endRadius: 70
+                                startRadius: 5,
+                                endRadius: 40
                             )
                         )
-                        .frame(width: 140, height: 140)
+                        .frame(width: 80, height: 80)
 
                     Image(systemName: "arrow.uturn.backward.circle.fill")
-                        .font(.system(size: 64))
+                        .font(.system(size: 48))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [.blue, .cyan],
@@ -711,20 +711,15 @@ struct UndoPurchaseView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .shadow(color: .blue.opacity(0.5), radius: 12)
+                        .shadow(color: .blue.opacity(0.5), radius: 8)
                 }
 
                 // Title
                 Text("Unlock Undo")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
 
-                // Description
-                Text("Made a wrong move? Undo lets you take back\nyour last moves and try a different strategy.")
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+        
 
                 // Features list
                 VStack(alignment: .leading, spacing: 12) {
@@ -826,15 +821,8 @@ struct UndoPurchaseView: View {
                 }
                 .padding(.bottom, 8)
 
-                // Dismiss
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Not Now")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.white.opacity(0.4))
-                }
-                .padding(.bottom, 24)
+                Spacer()
+                    .frame(height: 8)
             }
         }
         .task {

@@ -120,10 +120,12 @@ final class StoreManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             if case .verified(let transaction) = result,
                transaction.productID == Self.undoProductID {
-                isUndoPurchased = true
+                isUndoPurchased = transaction.revocationDate == nil
                 return
             }
         }
+        // No matching entitlement found
+        isUndoPurchased = false
     }
 
     // MARK: - Transaction Listener
@@ -135,8 +137,9 @@ final class StoreManager: ObservableObject {
                 if case .verified(let transaction) = result,
                    transaction.productID == StoreManager.undoProductID {
                     await transaction.finish()
+                    let isValid = transaction.revocationDate == nil
                     await MainActor.run {
-                        self?.isUndoPurchased = true
+                        self?.isUndoPurchased = isValid
                     }
                 }
             }
