@@ -261,4 +261,33 @@ extension Board {
             return
         }
     }
+
+    /// Tap an empty column slot — move a king here from revealed or another column
+    func tapEmptyColumn(columnIndex: Int) {
+        guard columns[columnIndex].isEmpty else { return }
+
+        // Check revealed pile for a king
+        if let card = revealed.last, card.value == .king {
+            columns[columnIndex].append(revealed.removeLast())
+            objectWillChange.send()
+            return
+        }
+
+        // Check other columns for a king at the start of a face-up sequence
+        for i in 0..<7 where i != columnIndex && !columns[i].isEmpty {
+            // Find the first face-up card in this column
+            if let firstFaceUp = columns[i].firstIndex(where: { $0.isFlipped }) {
+                let card = columns[i][firstFaceUp]
+                if card.value == .king && firstFaceUp > 0 {
+                    // Only move if the king isn't already at the base (pointless move)
+                    let moving = Array(columns[i][firstFaceUp...])
+                    columns[columnIndex].append(contentsOf: moving)
+                    columns[i].removeSubrange(firstFaceUp...)
+                    exposeTopCard(in: i)
+                    objectWillChange.send()
+                    return
+                }
+            }
+        }
+    }
 }
