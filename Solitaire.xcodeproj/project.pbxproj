@@ -12,6 +12,8 @@
 		466A207628A6DA92006DB9ED /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 466A207528A6DA92006DB9ED /* Preview Assets.xcassets */; };
 		466A207D28A6DB89006DB9ED /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466A207C28A6DB89006DB9ED /* BoardView.swift */; };
 		466A207F28A6DB9E006DB9ED /* Model.swift in Sources */ = {isa = PBXBuildFile; fileRef = 466A207E28A6DB9E006DB9ED /* Model.swift */; };
+		46850A862F3E87BC005BDDAF /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 46850A852F3E87BC005BDDAF /* RevenueCat */; };
+		46850A882F3E87BC005BDDAF /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46850A872F3E87BC005BDDAF /* RevenueCatUI */; };
 		AA1B2C3E28A6DC00006DB9ED /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D28A6DC00006DB9ED /* StoreManager.swift */; };
 /* End PBXBuildFile section */
 
@@ -31,6 +33,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46850A882F3E87BC005BDDAF /* RevenueCatUI in Frameworks */,
+				46850A862F3E87BC005BDDAF /* RevenueCat in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +123,9 @@
 				Base,
 			);
 			mainGroup = 466A206228A6DA91006DB9ED;
+			packageReferences = (
+				46850A842F3E87BC005BDDAF /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+			);
 			productRefGroup = 466A206C28A6DA91006DB9ED /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -357,6 +364,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		46850A842F3E87BC005BDDAF /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.58.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		46850A852F3E87BC005BDDAF /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46850A842F3E87BC005BDDAF /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		46850A872F3E87BC005BDDAF /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46850A842F3E87BC005BDDAF /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 466A206328A6DA91006DB9ED /* Project object */;
 }

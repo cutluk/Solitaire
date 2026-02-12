@@ -5,6 +5,7 @@
 //  Manages in-app purchases using StoreKit 2.
 //
 
+import RevenueCat
 import StoreKit
 import SwiftUI
 
@@ -13,7 +14,7 @@ final class StoreManager: ObservableObject {
 
     // MARK: - Product IDs
 
-    static let undoProductID = "com.codebycutting.solitaire.undo"
+    nonisolated static let undoProductID = "com.codebycutting.solitaire.undo"
 
     // MARK: - Published State
 
@@ -121,11 +122,27 @@ final class StoreManager: ObservableObject {
             if case .verified(let transaction) = result,
                transaction.productID == Self.undoProductID {
                 isUndoPurchased = transaction.revocationDate == nil
+                // Sync existing purchases to RevenueCat dashboard
+                syncToRevenueCat()
                 return
             }
         }
         // No matching entitlement found
         isUndoPurchased = false
+    }
+
+    // MARK: - RevenueCat Sync
+
+    /// Sync local purchases to RevenueCat so they appear in the dashboard.
+    private func syncToRevenueCat() {
+        Task {
+            do {
+                _ = try await Purchases.shared.syncPurchases()
+                print("StoreManager: Synced purchases to RevenueCat")
+            } catch {
+                print("StoreManager: Failed to sync to RevenueCat – \(error)")
+            }
+        }
     }
 
     // MARK: - Transaction Listener
@@ -138,7 +155,7 @@ final class StoreManager: ObservableObject {
                    transaction.productID == StoreManager.undoProductID {
                     await transaction.finish()
                     let isValid = transaction.revocationDate == nil
-                    await MainActor.run {
+                    await MainActor.run { [weak self] in
                         self?.isUndoPurchased = isValid
                     }
                 }
@@ -149,7 +166,7 @@ final class StoreManager: ObservableObject {
     // MARK: - Verification
 
     /// Unwrap a verified transaction or throw on failure.
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+    private func checkVerified<T>(_ result: StoreKit.VerificationResult<T>) throws -> T {
         switch result {
         case .unverified(_, let error):
             throw error
